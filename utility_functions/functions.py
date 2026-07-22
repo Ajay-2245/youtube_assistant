@@ -17,12 +17,12 @@ gemini_api_key = os.getenv("GEMINI_APIKEY")
 groq_api_key = os.getenv("GROQ_APIKEY")
 ytt_api = YouTubeTranscriptApi()
 embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=gemini_api_key)
-llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash", api_key = gemini_api_key)
+llm = ChatGoogleGenerativeAI(model="gemini-3.6-flash", api_key = gemini_api_key)
 translate_llm = ChatGroq(model="llama-3.1-8b-instant", api_key=groq_api_key)
 parser = StrOutputParser()
 
 
-@traceable(name="llm-language-converter", metadata={"model" : "gemini-3.5-flash", "provider":"Google"})
+@traceable(name="llm-language-converter", metadata={"model" : "gemini-3.6-flash", "provider":"Google"})
 def language_converter(context):
     prompt = PromptTemplate(
         template = "Convert the following hindi text to english, if it is already in english then give it as it is \n text = {text}",
@@ -36,7 +36,7 @@ def language_converter(context):
     docs = [doc]
     return docs
 
-@traceable(name="asynchronous-language-converter", metadata={"model" : "gemini-3.5-flash", "provider":"Google"})
+@traceable(name="asynchronous-language-converter", metadata={"model" : "gemini-3.6-flash", "provider":"Google"})
 async def async_language_converter(chunks, video_id):
     inputs = [{"text" : chunk} for chunk in chunks]
     prompt = PromptTemplate(
@@ -65,11 +65,12 @@ def chunker(transcript_text):
     return chunks
 
 @traceable(name="vector-store-persist", metadata={"vector_store" : "ChromaDB", "embedding_model": "models/gemini-embedding-001"})
-def vector_store_persist(chunks, persist_dir):
+def vector_store_persist(chunks, persist_dir, video_id):
     vector_store = Chroma.from_documents(
         documents = chunks,
         embedding = embeddings,
-        persist_directory = persist_dir
+        persist_directory = persist_dir,
+        collection_name=video_id
     )
 
     print("Created new embeddings")
@@ -89,10 +90,11 @@ def retrieve_relavant_context(query, vector_store, num_docs):
     return final_context
 
 @traceable(name="load-vector-store", metadata={"embedding_model" : "models/gemini-embedding-001"})
-def load_existing_vector_store(persist_dir):
+def load_existing_vector_store(persist_dir, video_id):
     vector_store = Chroma(
             persist_directory = persist_dir,
-            embedding_function = embeddings
+            embedding_function = embeddings,
+            collection_name=video_id
         )
     print("Loaded existing embeddings")
     return vector_store

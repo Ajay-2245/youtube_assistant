@@ -4,6 +4,7 @@ from langchain_core.tools import tool
 from dotenv import load_dotenv
 import os
 import asyncio
+import chromadb
 
 load_dotenv()
 gemini_api_key = os.getenv("GEMINI_APIKEY")
@@ -21,10 +22,19 @@ def transcript_context_extractor(video_id:str, query:str)->str:
     """
     context = ""
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    persist_dir = os.path.join(base_dir, "..", "vector_store", "chroma_db", video_id, "transcripts")
+    persist_dir = os.path.join(base_dir, "..", "vector_store", "chroma_db")
+
+    #Fetch all the already available embeddings
+    client = chromadb.PersistentClient(path="./vector_store/chroma_db")
+    collections = client.list_collections()
     #see if vector store already has the embeddings of the video
-    if os.path.exists(persist_dir):
-        vector_store = load_existing_vector_store(persist_dir)
+    flag = False
+    for collection in collections:
+        if video_id == collection.name:
+            flag = True
+            break
+    if flag:
+        vector_store = load_existing_vector_store(persist_dir, video_id)
     else :
         #fetch the transcript
         if video_id:
@@ -50,7 +60,7 @@ def transcript_context_extractor(video_id:str, query:str)->str:
         os.makedirs(persist_dir, exist_ok=True)
 
         #save in vector store
-        vector_store = vector_store_persist(translated_chunks, persist_dir)
+        vector_store = vector_store_persist(translated_chunks, persist_dir, video_id)
 
     #retrieve relavant docs
     final_context = retrieve_relavant_context(query, vector_store, 5)
@@ -58,5 +68,5 @@ def transcript_context_extractor(video_id:str, query:str)->str:
     
     return final_context
 
-# ans  = transcript_context_extractor.invoke({"video_id" : "pSVk-5WemQ0", "query" : "What is Photosynthesis?"})
-# print(ans)
+ans  = transcript_context_extractor.invoke({"video_id" : "fHF22Wxuyw4", "query" : "What is difference between ML and DL?"})
+print(ans)
