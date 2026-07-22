@@ -1,0 +1,4 @@
+.env
+myenv/
+vector_store/
+__pycache__/
