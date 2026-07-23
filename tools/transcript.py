@@ -68,5 +68,5 @@ def transcript_context_extractor(video_id:str, query:str)->str:
     
     return final_context
 
-ans  = transcript_context_extractor.invoke({"video_id" : "fHF22Wxuyw4", "query" : "What is difference between ML and DL?"})
-print(ans)
+# ans  = transcript_context_extractor.invoke({"video_id" : "QQfZAoNGQmE", "query" : "What is the motivation of using GRU?"})
+# print(ans)

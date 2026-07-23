@@ -44,7 +44,12 @@ async def async_language_converter(chunks, video_id):
         input_variables = ['text']
     )
     chain = prompt | llm | parser
-    results = await chain.abatch(inputs, config={"max_concurrency":100})
+
+    try : 
+        results = await chain.abatch(inputs, config={"max_concurrency":100})
+    except Exception as e:
+        print("Translation Failed")
+        print(e)
 
     translated_docs = [
         Document(
@@ -83,6 +88,7 @@ def retrieve_relavant_context(query, vector_store, num_docs):
     if run_tree:
         run_tree.metadata["k"] = num_docs
     results = vector_store.similarity_search(query, k=num_docs)
+    #should retrieve only raw Documents, can get the final context in transcript.py separately.(The following code has to be migrated to transcript.py)
     final_context = ""
     for doc in results:
         content = doc.page_content

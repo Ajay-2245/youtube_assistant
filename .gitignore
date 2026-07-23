@@ -1,4 +1,5 @@
 .env
 myenv/
+eval-env/
 vector_store/
 __pycache__/
