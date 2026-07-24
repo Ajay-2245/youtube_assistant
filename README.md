@@ -12,6 +12,16 @@ Preparing the evaluation dataset :
 1) Prepared eval dataset using RAGAS, only one video is considered and 30 QA pairs are generated.
 
 
+Find old and new architectures below
+
+## Old architecture
+
+![Old architecture](images/old_architecture.png)
+
+## New architecture
+
+![New architecture](images/new_architecture.png)
+
 
 # Retrieval Evaluation Metrics — Summary
 

@@ -18,7 +18,9 @@ groq_api_key = os.getenv("GROQ_APIKEY")
 ytt_api = YouTubeTranscriptApi()
 embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=gemini_api_key)
 llm = ChatGoogleGenerativeAI(model="gemini-3.6-flash", api_key = gemini_api_key)
-translate_llm = ChatGroq(model="llama-3.1-8b-instant", api_key=groq_api_key)
+translation_llm= "gemini-3.6-flash"
+translation_prompt_version = "v1"
+# translate_llm = ChatGroq(model="llama-3.1-8b-instant", api_key=groq_api_key)
 parser = StrOutputParser()
 
 
@@ -37,7 +39,7 @@ def language_converter(context):
     return docs
 
 @traceable(name="asynchronous-language-converter", metadata={"model" : "gemini-3.6-flash", "provider":"Google"})
-async def async_language_converter(chunks, video_id):
+async def async_language_converter(chunks):
     inputs = [{"text" : chunk} for chunk in chunks]
     prompt = PromptTemplate(
         template = "Convert the following hindi text to english, if it is already in english then give it as it is \n text = {text}",
@@ -50,24 +52,35 @@ async def async_language_converter(chunks, video_id):
     except Exception as e:
         print("Translation Failed")
         print(e)
-
-    translated_docs = [
-        Document(
-            page_content = result,
-            metadata = {"video_id" : video_id, "chunk_index":i}
-        )
-        for i, result in enumerate(results)
-    ]
-    return translated_docs
+    #get the aggregated context of translated docs
+    translated_context = ""
+    for i, result in enumerate(results):
+        translated_context+=result
+    return translated_context
 
 
-@traceable(name="chunker", metadata={"chunking-strategy" : "RecursiveCharacterTextSplitter"})
-def chunker(transcript_text):
+@traceable(name="pre-translation-chunker", metadata={"chunking-strategy" : "RecursiveCharacterTextSplitter"})
+def pre_translation_chunker(transcript_text):
     splitter = RecursiveCharacterTextSplitter(chunk_size = 800, chunk_overlap=80)
     chunks = splitter.split_text(transcript_text)
     print(f"{len(chunks)} chunks loaded\n")
 
     return chunks
+
+@traceable(name="post-translation-chunker", metadata={"chunking-strategy" : "RecursiveCharacterTextSplitter"})
+def post_translation_chunker(transcript_text, video_id):
+    splitter = RecursiveCharacterTextSplitter(chunk_size = 800, chunk_overlap=80)
+    chunks = splitter.split_text(transcript_text)
+    print(f"{len(chunks)} chunks loaded\n")
+    translated_chunks = [
+        Document(
+            page_content = result,
+            metadata = {"video_id" : video_id, "chunk_index":i}
+        )
+        for i, result in enumerate(chunks)
+    ]
+
+    return translated_chunks
 
 @traceable(name="vector-store-persist", metadata={"vector_store" : "ChromaDB", "embedding_model": "models/gemini-embedding-001"})
 def vector_store_persist(chunks, persist_dir, video_id):
